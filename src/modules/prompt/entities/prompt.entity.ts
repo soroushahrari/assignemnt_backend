@@ -1,5 +1,5 @@
 export class Prompt {
-    id: number;
+    id: string;
     title: string;
     description: string;
     favorite: boolean;
