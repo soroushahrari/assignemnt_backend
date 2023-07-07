@@ -20,12 +20,12 @@ export class RedisService {
         return await this.client.get(key);
     }
 
-    async set(key: string, value: string): Promise<void> {
-        await this.client.set(key, value);
+    async set(key: string, value: string): Promise<string> {
+        return await this.client.set(key, value);
     }
 
-    async del(key: string): Promise<void> {
-        await this.client.del(key);
+    async del(key: string): Promise<number> {
+        return await this.client.del(key);
     }
 
     async keys(pattern: string): Promise<string[]> {
@@ -50,7 +50,7 @@ export class RedisService {
         return values;
     }
 
-    async flushall(): Promise<void> {
-        await this.client.flushall();
+    async flushall(): Promise<string> {
+        return await this.client.flushall();
     }
 }
