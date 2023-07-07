@@ -11,7 +11,7 @@ import {
 import { PromptService } from '../services/prompt.service';
 import { CreatePromptDto } from '../dto/create-prompt.dto';
 import { UpdatePromptDto } from '../dto/update-prompt.dto';
-import { IResponse } from 'src/response.interface';
+import { IResponse } from 'src/common/interfaces/response.interface';
 import {
     ApiBody,
     ApiOperation,
