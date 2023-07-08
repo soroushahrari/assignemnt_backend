@@ -3,9 +3,12 @@ import { CreatePromptDto } from '../dto/create-prompt.dto';
 import { UpdatePromptDto } from '../dto/update-prompt.dto';
 import { Prompt } from '../entities/prompt.entity';
 import { v4 as uuidv4 } from 'uuid';
-import { RedisService } from 'src/modules/redis/services/redis.service';
+import { RedisService } from '../../redis/services/redis.service';
 @Injectable()
 export class PromptService {
+    static update(update: any) {
+        throw new Error('Method not implemented.');
+    }
     constructor(private redisService: RedisService) {}
 
     async create(createPromptDto: CreatePromptDto): Promise<Prompt> {
