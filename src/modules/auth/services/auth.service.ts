@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { LoginDto } from './dto/login.dto';
-import { SignupDto } from './dto/signup.dto';
-import { UserService } from '../user/user.service';
+import { AuthCredentialsDto } from '../dto/auth-credentials.dto';
+import { UserService } from '../../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { IAuthResponse } from '../interfaces/auth.reponse.interface';
+import { IUserResponse } from '../../user/interfaces/user.reponse.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
     constructor(
         private userService: UserService,
         private jwtService: JwtService,
-    ) {}
+        private configService: ConfigService,
+    ) { }
 
-    async signup(signupDto: SignupDto): Promise<any> {
+    async signup(signupDto: AuthCredentialsDto): Promise<IAuthResponse> {
         const hashedPassword = await bcrypt.hash(signupDto.password, 10);
 
         const user = await this.userService.create({
@@ -22,11 +25,10 @@ export class AuthService {
 
         const accessToken = await this.generateToken(user);
 
-        console.log(accessToken);
         return { accessToken };
     }
 
-    async login(loginDto: LoginDto): Promise<any> {
+    async login(loginDto: AuthCredentialsDto): Promise<IAuthResponse> {
         const { email, password } = loginDto;
 
         const user = await this.validateUser(email, password);
@@ -40,22 +42,24 @@ export class AuthService {
         return { accessToken };
     }
 
-    async validateUser(email: string, password: string): Promise<any> {
+    async validateUser(
+        email: string,
+        password: string,
+    ): Promise<IUserResponse> {
         const user = await this.userService.findByEmail(email);
 
         if (bcrypt.compare(password, user.password)) {
-            const { password, ...result } = user;
-
-            return result;
+            return {
+                id: user.id,
+                email: user.email,
+                createdAt: user.createdAt,
+            };
         }
 
         return null;
     }
 
-    async generateToken({ id, email }) {
-        return await this.jwtService.signAsync(
-            { id, email },
-            { expiresIn: '1d' },
-        );
+    async generateToken({ id, email }): Promise<string> {
+        return await this.jwtService.signAsync({ id, email });
     }
 }

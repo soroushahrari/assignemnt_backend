@@ -4,25 +4,24 @@ import { RedisService } from '../redis/services/redis.service';
 import { User } from './entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import { IUserResponse } from './interfaces/user.reponse.interface';
 
 @Injectable()
 export class UserService {
     constructor(
         private redisService: RedisService,
         private configService: ConfigService,
-        ) { }
+    ) {}
 
-    async create(createUserDto: CreateUserDto) {
-
+    async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
         const newUser: User = {
             id: uuidv4(),
             createdAt: new Date(),
             ...createUserDto,
         };
 
-        const userKey = `${this.configService.get<string>('USER_PREFIX')}${
-            newUser.id
-        }`;
+        const userKey = `${this.configService.get<string>('USER_PREFIX')}${newUser.id
+            }`;
         const response = await this.redisService.set(
             userKey,
             JSON.stringify(newUser),
@@ -32,7 +31,11 @@ export class UserService {
             throw new Error('Error while creating user');
         }
 
-        return newUser;
+        return {
+            id: newUser.id,
+            email: newUser.email,
+            createdAt: newUser.createdAt,
+        };
     }
 
     async findAll(): Promise<User[]> {
