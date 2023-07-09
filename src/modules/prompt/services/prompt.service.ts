@@ -4,47 +4,80 @@ import { UpdatePromptDto } from '../dto/update-prompt.dto';
 import { Prompt } from '../entities/prompt.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '../../redis/services/redis.service';
+import { ConfigService } from '@nestjs/config';
+import { User } from 'src/modules/user/entities/user.entity';
 @Injectable()
 export class PromptService {
-    static update(update: any) {
-        throw new Error('Method not implemented.');
-    }
-    constructor(private redisService: RedisService) {}
+    constructor(
+        private redisService: RedisService,
+        private configService: ConfigService,
+    ) { }
 
-    async create(createPromptDto: CreatePromptDto): Promise<Prompt> {
+    async create(
+        user: User,
+        createPromptDto: CreatePromptDto,
+    ): Promise<Prompt> {
         const { title, description } = createPromptDto;
 
-        const newpRompt: Prompt = {
+        const newPrompt: Prompt = {
             id: uuidv4(),
             title,
             description,
             favorite: false,
+            author: user.id,
             createdAt: new Date(),
             lastModifiedAt: null,
         };
 
-        const response = await this.redisService.set(
-            newpRompt.id,
-            JSON.stringify(newpRompt),
-        );
+        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${newPrompt.id
+            }`;
 
-        if (response != 'OK') {
-            throw new Error('Error while creating prompt');
+        const userPromptKey = `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`;
+
+        const response = await this.redisService.createPrompt(
+            userPromptKey,
+            promptKey,
+            JSON.stringify(newPrompt),
+        );
+        if (!response) {
+            throw new Error(
+                'Error while creating prompt and linking it to the user',
+            );
         }
 
-        return newpRompt;
+        return newPrompt;
     }
 
-    async findAll(): Promise<Prompt[]> {
-        const prompts = await this.redisService.values('*');
+    async findAll(user: User): Promise<Prompt[]> {
+        const promptKeys = await this.redisService.smembers(
+            `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`,
+        );
 
-        return prompts.map((prompt) => {
-            return JSON.parse(prompt);
-        });
+        const rawPrompts = await Promise.all(
+            promptKeys.map(async (key) => {
+                const prompt = await this.redisService.get(key);
+                const parsedPrompt = JSON.parse(prompt);
+
+                const sortDate =
+                    parsedPrompt.lastModifiedAt ?? parsedPrompt.createdAt;
+                parsedPrompt.sortDate = new Date(sortDate);
+
+                return parsedPrompt;
+            }),
+        );
+
+        const sortedPrompts = rawPrompts.sort(
+            (a, b) => b.sortDate - a.sortDate,
+        );
+
+        const prompts = sortedPrompts.map(({ sortDate, ...rest }) => rest);
+
+        return prompts;
     }
 
     async findOne(id: string): Promise<Prompt> {
-        const prompt = await this.redisService.get(id);
+        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${id}`;
+        const prompt = await this.redisService.get(promptKey);
 
         if (!prompt) {
             throw new Error('Prompt not found');
@@ -57,9 +90,10 @@ export class PromptService {
         id: string,
         updatePromptDto: UpdatePromptDto,
     ): Promise<Prompt> {
+        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${id}`;
         let prompt;
         try {
-            prompt = await this.redisService.get(id);
+            prompt = await this.redisService.get(promptKey);
         } catch (error) {
             throw error;
         }
@@ -75,7 +109,7 @@ export class PromptService {
         };
 
         const response = await this.redisService.set(
-            id,
+            promptKey,
             JSON.stringify(updatedPrompt),
         );
 
@@ -86,11 +120,31 @@ export class PromptService {
         return updatedPrompt;
     }
 
-    async remove(id: string): Promise<boolean> {
-        const response = await this.redisService.del(id);
+    async remove(user: User, id: string): Promise<boolean> {
+        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${id}`;
+        const userPromptKey = `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`;
+
+        const response = await this.redisService.deletePrompt(
+            userPromptKey,
+            promptKey,
+        );
 
         if (response == 0) {
-            throw new Error('Prompt not found');
+            throw new Error('Error while deleting prompt');
+        }
+
+        return true;
+    }
+
+    async removeAllUserPrompts(user: User): Promise<boolean> {
+        const userPromptKey = `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`;
+
+        const response = await this.redisService.flushUserPrompts(
+            userPromptKey,
+        );
+
+        if (response == 0) {
+            throw new Error('Error while deleting all user prompts');
         }
 
         return true;

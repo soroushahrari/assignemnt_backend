@@ -3,6 +3,7 @@ export class Prompt {
     title: string;
     description: string;
     favorite: boolean;
+    author: string;
     createdAt: Date;
     lastModifiedAt: Date;
 }

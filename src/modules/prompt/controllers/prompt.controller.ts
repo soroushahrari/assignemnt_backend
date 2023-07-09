@@ -7,6 +7,7 @@ import {
     Param,
     Delete,
     HttpException,
+    UseGuards,
 } from '@nestjs/common';
 import { PromptService } from '../services/prompt.service';
 import { CreatePromptDto } from '../dto/create-prompt.dto';
@@ -19,11 +20,15 @@ import {
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { User } from 'src/modules/user/entities/user.entity';
 
 @ApiTags('prompt')
 @Controller('prompt')
+@UseGuards(JwtAuthGuard)
 export class PromptController {
-    constructor(private readonly promptService: PromptService) {}
+    constructor(private readonly promptService: PromptService) { }
 
     @ApiOperation({
         description: 'Create a prompt',
@@ -31,15 +36,13 @@ export class PromptController {
     @ApiBody({
         type: CreatePromptDto,
     })
-    @ApiResponse({
-        status: 201,
-        description: 'The prompt has been successfully created.',
-        type: CreatePromptDto,
-    })
     @Post()
-    async create(@Body() createPromptDto: CreatePromptDto): Promise<IResponse> {
+    async create(
+        @GetUser() user: User,
+        @Body() createPromptDto: CreatePromptDto,
+    ): Promise<IResponse> {
         try {
-            const res = await this.promptService.create(createPromptDto);
+            const res = await this.promptService.create(user, createPromptDto);
 
             return {
                 isSuccess: true,
@@ -54,18 +57,13 @@ export class PromptController {
     @ApiOperation({
         description: 'Get all prompts',
     })
-    @ApiResponse({
-        status: 200,
-        description: 'All prompts fetched successfully.',
-        type: [CreatePromptDto],
-    })
     @Get()
-    async findAll(): Promise<IResponse> {
-        const res = await this.promptService.findAll();
+    async findAll(@GetUser() user: User): Promise<IResponse> {
+        const res = await this.promptService.findAll(user);
 
         return {
             isSuccess: true,
-            message: 'Prompt fetched successfully',
+            message: 'Prompts fetched successfully',
             data: res,
         };
     }
@@ -78,15 +76,17 @@ export class PromptController {
         description: 'The id of the prompt',
         type: String,
     })
-    @ApiResponse({
-        status: 200,
-        description: 'The prompt fetched successfully.',
-        type: CreatePromptDto,
-    })
     @Get(':id')
-    async findOne(@Param('id') id: string): Promise<IResponse> {
+    async findOne(
+        @GetUser() user: User,
+        @Param('id') id: string,
+    ): Promise<IResponse> {
         try {
             const res = await this.promptService.findOne(id);
+
+            if (res.author !== user.id) {
+                throw new Error('Unauthorized');
+            }
 
             return {
                 isSuccess: true,
@@ -94,6 +94,9 @@ export class PromptController {
                 data: res,
             };
         } catch (error) {
+            if (error.message === 'Unauthorized') {
+                throw new HttpException(error, 401);
+            }
             throw new HttpException(error, 404);
         }
     }
@@ -144,9 +147,12 @@ export class PromptController {
         type: CreatePromptDto,
     })
     @Delete(':id')
-    async remove(@Param('id') id: string): Promise<IResponse> {
+    async remove(
+        @GetUser() user: User,
+        @Param('id') id: string,
+    ): Promise<IResponse> {
         try {
-            await this.promptService.remove(id);
+            await this.promptService.remove(user, id);
 
             return {
                 isSuccess: true,
