@@ -7,6 +7,7 @@ import {
     Param,
     Delete,
     HttpException,
+    UseGuards,
 } from '@nestjs/common';
 import { PromptService } from '../services/prompt.service';
 import { CreatePromptDto } from '../dto/create-prompt.dto';
@@ -19,11 +20,15 @@ import {
     ApiResponse,
     ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { User } from 'src/modules/user/entities/user.entity';
 
 @ApiTags('prompt')
 @Controller('prompt')
+@UseGuards(JwtAuthGuard)
 export class PromptController {
-    constructor(private readonly promptService: PromptService) {}
+    constructor(private readonly promptService: PromptService) { }
 
     @ApiOperation({
         description: 'Create a prompt',
@@ -37,9 +42,12 @@ export class PromptController {
         type: CreatePromptDto,
     })
     @Post()
-    async create(@Body() createPromptDto: CreatePromptDto): Promise<IResponse> {
+    async create(
+        @GetUser() user: User,
+        @Body() createPromptDto: CreatePromptDto,
+    ): Promise<IResponse> {
         try {
-            const res = await this.promptService.create(createPromptDto);
+            const res = await this.promptService.create(user, createPromptDto);
 
             return {
                 isSuccess: true,
@@ -144,9 +152,12 @@ export class PromptController {
         type: CreatePromptDto,
     })
     @Delete(':id')
-    async remove(@Param('id') id: string): Promise<IResponse> {
+    async remove(
+        @GetUser() user: User,
+        @Param('id') id: string,
+    ): Promise<IResponse> {
         try {
-            await this.promptService.remove(id);
+            await this.promptService.remove(user, id);
 
             return {
                 isSuccess: true,
