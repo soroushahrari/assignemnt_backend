@@ -16,7 +16,7 @@ export class UserService {
     async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
 
         const { email, password } = createUserDto;
-        const existingUser = await this.findByEmail(createUserDto.email);
+        const existingUser = await this.checkExistingUser(createUserDto.email);
         if (existingUser) {
             throw new Error('User with this email already exists');
         }
@@ -75,5 +75,17 @@ export class UserService {
         }
 
         return user;
+    }
+
+    async checkExistingUser(email: string): Promise<boolean> {
+        const users = await this.findAll();
+
+        const user = users.find((user) => user.email === email);
+
+        if (!user) {
+            return false;
+        }
+
+        return true;
     }
 }
