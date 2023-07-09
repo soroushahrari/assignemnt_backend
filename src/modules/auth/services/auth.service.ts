@@ -18,10 +18,15 @@ export class AuthService {
     async signup(signupDto: AuthCredentialsDto): Promise<IAuthResponse> {
         const hashedPassword = await bcrypt.hash(signupDto.password, 10);
 
-        const user = await this.userService.create({
-            ...signupDto,
-            password: hashedPassword,
-        });
+        let user: IUserResponse;
+        try {
+            user = await this.userService.create({
+                ...signupDto,
+                password: hashedPassword,
+            });
+        } catch (error) {
+            throw new Error('User with this email already exists');
+        }
 
         const accessToken = await this.generateToken(user);
 

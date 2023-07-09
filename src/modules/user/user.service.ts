@@ -11,17 +11,26 @@ export class UserService {
     constructor(
         private redisService: RedisService,
         private configService: ConfigService,
-    ) {}
+    ) { }
 
     async create(createUserDto: CreateUserDto): Promise<IUserResponse> {
+
+        const { email, password } = createUserDto;
+        const existingUser = await this.findByEmail(createUserDto.email);
+        if (existingUser) {
+            throw new Error('User with this email already exists');
+        }
+
         const newUser: User = {
             id: uuidv4(),
+            email,
+            password,
             createdAt: new Date(),
-            ...createUserDto,
         };
 
-        const userKey = `${this.configService.get<string>('USER_PREFIX')}${newUser.id
-            }`;
+        const userKey = `${this.configService.get<string>('USER_PREFIX')}${
+            newUser.id
+        }`;
         const response = await this.redisService.set(
             userKey,
             JSON.stringify(newUser),
