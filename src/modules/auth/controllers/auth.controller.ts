@@ -13,7 +13,7 @@ export class AuthController {
     @ApiBody({ type: AuthCredentialsDto })
     @Post('signup')
     async signup(@Body() signupDto: AuthCredentialsDto): Promise<IResponse> {
-        const res = this.authService.signup(signupDto);
+        const res = await this.authService.signup(signupDto);
 
         return {
             isSuccess: true,
@@ -26,7 +26,7 @@ export class AuthController {
     @ApiBody({ type: AuthCredentialsDto })
     @Post('login')
     async login(@Body() loginDto: AuthCredentialsDto): Promise<IResponse> {
-        const res = this.authService.login(loginDto);
+        const res = await this.authService.login(loginDto);
 
         return {
             isSuccess: true,
