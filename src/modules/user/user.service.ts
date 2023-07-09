@@ -17,10 +17,6 @@ export class UserService {
         return `This action returns a #${id} user`;
     }
 
-    async findByUsername(username: string) {
-        return `This action returns a ${username} user`;
-    }
-
     async findByEmail(email: string) {
         return `This action returns a ${email} user`;
     }
