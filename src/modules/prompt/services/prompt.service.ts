@@ -11,7 +11,7 @@ export class PromptService {
     constructor(
         private redisService: RedisService,
         private configService: ConfigService,
-    ) {}
+    ) { }
 
     async create(
         user: User,
@@ -29,9 +29,8 @@ export class PromptService {
             lastModifiedAt: null,
         };
 
-        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${
-            newPrompt.id
-        }`;
+        const promptKey = `${this.configService.get<string>('PROMPT_PREFIX')}${newPrompt.id
+            }`;
 
         const userPromptKey = `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`;
 
@@ -54,14 +53,25 @@ export class PromptService {
             `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`,
         );
 
-
-        const prompts = await Promise.all(
+        const rawPrompts = await Promise.all(
             promptKeys.map(async (key) => {
                 const prompt = await this.redisService.get(key);
+                const parsedPrompt = JSON.parse(prompt);
 
-                return JSON.parse(prompt);
+                const sortDate =
+                    parsedPrompt.lastModifiedAt ?? parsedPrompt.createdAt;
+                parsedPrompt.sortDate = new Date(sortDate);
+
+                return parsedPrompt;
             }),
         );
+
+        const sortedPrompts = rawPrompts.sort(
+            (a, b) => b.sortDate - a.sortDate,
+        );
+
+        const prompts = sortedPrompts.map(({ sortDate, ...rest }) => rest);
+
         return prompts;
     }
 
