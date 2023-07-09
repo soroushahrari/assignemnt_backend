@@ -36,11 +36,6 @@ export class PromptController {
     @ApiBody({
         type: CreatePromptDto,
     })
-    @ApiResponse({
-        status: 201,
-        description: 'The prompt has been successfully created.',
-        type: CreatePromptDto,
-    })
     @Post()
     async create(
         @GetUser() user: User,
@@ -62,18 +57,13 @@ export class PromptController {
     @ApiOperation({
         description: 'Get all prompts',
     })
-    @ApiResponse({
-        status: 200,
-        description: 'All prompts fetched successfully.',
-        type: [CreatePromptDto],
-    })
     @Get()
-    async findAll(): Promise<IResponse> {
-        const res = await this.promptService.findAll();
+    async findAll(@GetUser() user: User): Promise<IResponse> {
+        const res = await this.promptService.findAll(user);
 
         return {
             isSuccess: true,
-            message: 'Prompt fetched successfully',
+            message: 'Prompts fetched successfully',
             data: res,
         };
     }
@@ -86,15 +76,17 @@ export class PromptController {
         description: 'The id of the prompt',
         type: String,
     })
-    @ApiResponse({
-        status: 200,
-        description: 'The prompt fetched successfully.',
-        type: CreatePromptDto,
-    })
     @Get(':id')
-    async findOne(@Param('id') id: string): Promise<IResponse> {
+    async findOne(
+        @GetUser() user: User,
+        @Param('id') id: string,
+    ): Promise<IResponse> {
         try {
             const res = await this.promptService.findOne(id);
+
+            if (res.author !== user.id) {
+                throw new Error('Unauthorized');
+            }
 
             return {
                 isSuccess: true,
@@ -102,6 +94,9 @@ export class PromptController {
                 data: res,
             };
         } catch (error) {
+            if (error.message === 'Unauthorized') {
+                throw new HttpException(error, 401);
+            }
             throw new HttpException(error, 404);
         }
     }
