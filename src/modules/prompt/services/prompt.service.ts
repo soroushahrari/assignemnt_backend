@@ -17,7 +17,6 @@ export class PromptService {
         user: User,
         createPromptDto: CreatePromptDto,
     ): Promise<Prompt> {
-        console.log(user)
         const { title, description } = createPromptDto;
 
         const newPrompt: Prompt = {
@@ -50,27 +49,15 @@ export class PromptService {
         return newPrompt;
     }
 
-    async findAll(): Promise<Prompt[]> {
-        const prompts = await this.redisService.values(
-            `${this.configService.get<string>('PROMPT_PREFIX')}*`,
-        );
-
-        return prompts.map((prompt) => {
-            return JSON.parse(prompt);
-        });
-    }
-
-    async findUserPrompts(user: User): Promise<Prompt[]> {
-        const promptIds = await this.redisService.smembers(
+    async findAll(user: User): Promise<Prompt[]> {
+        const promptKeys = await this.redisService.smembers(
             `${this.configService.get<string>('USER_PROMPT_PREFIX')}${user.id}`,
         );
 
+
         const prompts = await Promise.all(
-            promptIds.map(async (id) => {
-                const promptKey = `${this.configService.get<string>(
-                    'PROMPT_PREFIX',
-                )}${id}`;
-                const prompt = await this.redisService.get(promptKey);
+            promptKeys.map(async (key) => {
+                const prompt = await this.redisService.get(key);
 
                 return JSON.parse(prompt);
             }),
