@@ -32,4 +32,14 @@ export class UpdatePromptDto extends PartialType(CreatePromptDto) {
     @IsOptional()
     @IsBoolean()
     favorite?: boolean;
+
+    @ApiProperty({
+        required: false,
+        description: 'The text of the prompt',
+        example: 'My Prompt text with a {{variable}}',
+        type: String,
+    })
+    @IsOptional()
+    @IsString()
+    promptText?: string;
 }

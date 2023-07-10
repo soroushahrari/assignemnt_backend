@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '../../redis/services/redis.service';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/modules/user/entities/user.entity';
+import { Token } from 'src/common/enums/token.enum';
 @Injectable()
 export class PromptService {
     constructor(
@@ -17,12 +18,14 @@ export class PromptService {
         user: User,
         createPromptDto: CreatePromptDto,
     ): Promise<Prompt> {
-        const { title, description } = createPromptDto;
+        const { title, description, promptText } = createPromptDto;
 
         const newPrompt: Prompt = {
             id: uuidv4(),
             title,
             description,
+            promptText,
+            variable: await this.extractVariables(promptText),
             favorite: false,
             author: user.id,
             createdAt: new Date(),
@@ -108,6 +111,12 @@ export class PromptService {
             lastModifiedAt: new Date(),
         };
 
+        if (updatePromptDto.promptText) {
+            updatedPrompt.variable = await this.extractVariables(
+                updatePromptDto.promptText,
+            );
+        }
+
         const response = await this.redisService.set(
             promptKey,
             JSON.stringify(updatedPrompt),
@@ -158,5 +167,25 @@ export class PromptService {
         }
 
         return true;
+    }
+
+    async extractVariables(promptText: string): Promise<string[]> {
+        let i = 0;
+        const variables = [];
+
+        while (true) {
+            const start = promptText.indexOf(Token.OpeningMustache, i);
+            if (start === -1) break;
+            const end = promptText.indexOf(Token.ClosingMustache, i);
+            if (end === -1) break;
+            const variable = promptText
+                .substring(start + Token.OpeningMustache.length, end)
+                .trim();
+            variables.push(variable);
+
+            i = end + Token.ClosingMustache.length;
+        }
+
+        return variables;
     }
 }

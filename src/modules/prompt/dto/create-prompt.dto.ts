@@ -21,4 +21,14 @@ export class CreatePromptDto {
     @IsNotEmpty()
     @IsString()
     description: string;
+
+    @ApiProperty({
+        required: true,
+        description: 'The text of the prompt',
+        example: 'My Prompt text with a {{variable}}',
+        type: String,
+    })
+    @IsNotEmpty()
+    @IsString()
+    promptText: string;
 }
