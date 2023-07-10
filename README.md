@@ -62,6 +62,7 @@ Each prompt object in Redis is stored with the following properties:
 - `title`: The title of the prompt.
 - `description`: The description of the prompt.
 - `author`: The user ID of the prompt's author.
+- `favorite`: A boolean field indicating whether the prompt is marked as a favorite.
 - `createdAt`: The timestamp of when the prompt was created.
 - `lastModifiedAt`: The timestamp of when the prompt was last modified.
 
