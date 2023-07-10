@@ -42,6 +42,34 @@ npm run start:dev
 # production mode
 npm run start:prod
 ```
+
+## Data Model
+
+The backend application handles user, prompt data, and their relationship using Redis. Here's an overview of the data model:
+
+### User Data
+Each user object in Redis is stored with the following properties:
+- `id`: A unique identifier for the user (UUID).
+- `email`: The email address of the user.
+- `createdAt`: The timestamp of when the user was created.
+- `password`: The hashed password of the user.
+
+User objects are stored in Redis using the key `user:<userid>`.
+
+### Prompt Data
+Each prompt object in Redis is stored with the following properties:
+- `id`: A unique identifier for the prompt (UUID).
+- `title`: The title of the prompt.
+- `description`: The description of the prompt.
+- `author`: The user ID of the prompt's author.
+- `createdAt`: The timestamp of when the prompt was created.
+- `lastModifiedAt`: The timestamp of when the prompt was last modified.
+
+Prompt objects are stored in Redis using the key `prompt:<promptId>`.
+
+### User-Prompt Relationship
+The relationship between users and prompts is managed using a Redis set. Each user has a set with the key `user_prompt:<userid>`. The set contains the keys of the prompts that are associated with that user.
+
 ## API Endpoints
 
 The backend server exposes the following RESTful API endpoints:
